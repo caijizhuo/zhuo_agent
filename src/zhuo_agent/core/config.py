@@ -11,9 +11,23 @@ from dotenv import load_dotenv
 _DEFAULT_HOST = "127.0.0.1"
 _DEFAULT_PORT = 8888
 _DEFAULT_LOG_LEVEL = "INFO"
-_DEFAULT_LOG_FILE = "~/.zhuo/logs/core.log"
 _DEFAULT_LOG_FORMAT = "text"
-_DEFAULT_CONFIG_PATH = "~/.zhuo/config.toml"
+
+
+# 定位“当前项目根目录”：从本文件所在位置向上找 pyproject.toml 的目录。
+# 以文件位置（而非 cwd）为准，保证从任何目录启动都落在同一仓库根。
+# 找不到（例如以已安装包运行在 site-packages 时）则回退到家目录 ~/.zhuo。
+def _find_project_root() -> Path:
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "pyproject.toml").exists():
+            return parent
+    return Path.home() / ".zhuo"
+
+
+_PROJECT_ROOT = _find_project_root()
+_DEFAULT_LOG_FILE = str(_PROJECT_ROOT / "logs" / "core.log")
+_DEFAULT_CONFIG_PATH = str(_PROJECT_ROOT / "config.toml")
 
 
 @dataclass
