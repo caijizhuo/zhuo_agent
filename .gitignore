@@ -9,3 +9,4 @@ uv.lock
 .pytest_cache/
 *.pyc
 logs/
+runs/

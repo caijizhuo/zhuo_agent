@@ -1,4 +1,4 @@
-.PHONY: lint run ping
+.PHONY: lint run ping test
 
 run:
 	uv run zhuo-core
@@ -10,3 +10,5 @@ lint:
 	uv run ruff check src
 	uv run mypy src
 
+test:
+	uv run zhuo run --goal "总结下readme说了什么"
