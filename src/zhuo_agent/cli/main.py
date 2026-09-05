@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from zhuo_agent.cli.commands.core import cmd_core_start, cmd_core_status, cmd_core_stop
 from zhuo_agent.cli.commands.ping import cmd_ping
 from zhuo_agent.cli.commands.run import cmd_run
 from zhuo_agent.cli.commands.version import cmd_version
@@ -15,10 +16,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="zhuo", description="zhuo_agent CLI")
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers = parser.add_subparsers(dest="command")
+
     subparsers.add_parser("ping", help="Ping the core daemon")
 
-    run_parser = subparsers.add_parser("run", help="Run a task")
-    run_parser.add_argument("--goal", required=True, help="Goal for the agent to do")
+    run_parser = subparsers.add_parser("run", help="Run an agent task")
+    run_parser.add_argument("--goal", required=True, help="Goal for the agent to accomplish")
+
+    core_parser = subparsers.add_parser("core", help="Manage the core daemon")
+    core_sub = core_parser.add_subparsers(dest="core_command")
+    core_sub.add_parser("start", help="Start the daemon in the background")
+    core_sub.add_parser("stop", help="Stop the running daemon")
+    core_sub.add_parser("status", help="Show daemon status")
 
     args = parser.parse_args()
 
@@ -33,6 +41,16 @@ def main() -> None:
         cmd_ping(config)
     elif args.command == "run":
         cmd_run(args.goal, config)
+    elif args.command == "core":
+        if args.core_command == "start":
+            cmd_core_start(config)
+        elif args.core_command == "stop":
+            cmd_core_stop(config)
+        elif args.core_command == "status":
+            cmd_core_status(config)
+        else:
+            core_parser.print_help()
+            sys.exit(1)
     else:
         parser.print_help()
         sys.exit(1)

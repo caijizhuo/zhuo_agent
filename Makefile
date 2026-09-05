@@ -12,3 +12,6 @@ lint:
 
 test:
 	uv run zhuo run --goal "总结下readme说了什么"
+
+tui:
+	uv run zhuo-tui
