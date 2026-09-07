@@ -15,3 +15,6 @@ test:
 
 tui:
 	uv run zhuo-tui
+
+replay:
+	uv run zhuo-tui --replay 20260905-173234-dc441b

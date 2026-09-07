@@ -40,7 +40,7 @@ class ZhuoTuiApp(App[None]):
         yield Label("● connecting...", id="status")
         yield RichLog(id="log", highlight=True, markup=True)
 
-    # 挂载后启动 socket 连接 worker
+    # 挂载后启动 socket 连接 worker，由 textual 调用
     def on_mount(self) -> None:
         self.run_worker(self._socket_loop(), exclusive=True, name="socket")
 
