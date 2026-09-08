@@ -18,3 +18,6 @@ tui:
 
 replay:
 	uv run zhuo-tui --replay 20260905-173234-dc441b
+
+trace:
+	uv run zhuo trace

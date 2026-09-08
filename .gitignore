@@ -10,3 +10,4 @@ uv.lock
 *.pyc
 logs/
 runs/
+traces/
