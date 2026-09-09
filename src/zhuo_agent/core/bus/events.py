@@ -7,7 +7,7 @@ from pydantic import BaseModel, Discriminator
 
 class CoreStartedEvent(BaseModel):
     type: Literal["core.started"] = "core.started"
-    listen_addr: str  # e.g. "127.0.0.1:8888"
+    listen_addr: str  # e.g. "127.0.0.1:7437"
     version: str
 
 
@@ -56,6 +56,7 @@ class ToolCallFinishedEvent(BaseModel):
     tool_use_id: str
     tool_name: str
     elapsed_ms: int
+    output: str = ""  # tool result content, for TUI display
     ts: str
 
 
