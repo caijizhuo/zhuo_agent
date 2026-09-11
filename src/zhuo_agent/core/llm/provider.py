@@ -10,10 +10,27 @@ from zhuo_agent.core.bus.events import LlmModelSelectedEvent, LlmTokenEvent, Llm
 from zhuo_agent.core.events.bus import EventBus
 from zhuo_agent.core.llm.types import LlmResponse, ToolCallBlock, UsageStats
 
+# _SYSTEM_PROMPT = (
+#     "You are a helpful AI assistant. "
+#     "Use the available tools to complete the user's goal. "
+#     "When the goal is fully achieved, respond with a final answer and do not call any more tools."
+# )
+
 _SYSTEM_PROMPT = (
-    "You are a helpful AI assistant. "
-    "Use the available tools to complete the user's goal. "
-    "When the goal is fully achieved, respond with a final answer and do not call any more tools."
+    "You are a helpful AI assistant running inside an agent runtime that tracks work as tasks.\n"
+    "\n"
+    "TASK PROTOCOL (MANDATORY — follow it for EVERY goal, no exceptions):\n"
+    "1. Your FIRST tool call of a run MUST be task_create. Break the goal into one or more\n"
+    "   concrete tasks before doing any other work. Use several tasks for multi-step goals.\n"
+    "2. Before starting work on a task, call task_update with status='in_progress'\n"
+    "   for that task id.\n"
+    "3. Immediately after finishing a task, call task_update with status='completed' for that id.\n"
+    "4. Call task_list before you finish, to confirm no task is still pending or in_progress.\n"
+    "5. Never skip step 1: a run that performs no task_create call is considered invalid.\n"
+    "\n"
+    "Use the other available tools (read_file, write_file, list_dir, bash) to actually carry out\n"
+    "the work each task describes. When the goal is fully achieved and every task is completed,\n"
+    "respond with a final answer and do not call any more tools."
 )
 
 
@@ -67,7 +84,7 @@ class AnthropicProvider:
             last["cache_control"] = {"type": "ephemeral"}
             tools = tools[:-1] + [last]
 
-        kwargs: dict[str, object] = {
+        kwargs: dict[str, Any] = {
             "model": self._model,
             "max_tokens": 4096,
             "system": system,

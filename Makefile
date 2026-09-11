@@ -11,7 +11,7 @@ lint:
 	uv run mypy src
 
 test:
-	uv run zhuo run --goal "总结下readme说了什么"
+	uv run zhuo run --goal "用python写一个快速排序，放到当前文件夹的一个log文件中"
 
 tui:
 	uv run zhuo-tui
@@ -20,4 +20,4 @@ replay:
 	uv run zhuo-tui --replay 20260905-173234-dc441b
 
 trace:
-	uv run zhuo trace
+	uv run zhuo trace 20260911-180948-4cf4fc --layer llm --raw
