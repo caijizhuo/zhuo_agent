@@ -12,3 +12,4 @@ logs/
 runs/
 traces/
 *.log
+sessions/

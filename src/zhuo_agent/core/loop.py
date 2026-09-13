@@ -7,6 +7,7 @@ from zhuo_agent.core.bus.events import StepFinishedEvent, StepStartedEvent
 from zhuo_agent.core.context import ExecutionContext
 from zhuo_agent.core.events.bus import EventBus
 from zhuo_agent.core.llm.base import LLMProvider
+from zhuo_agent.core.llm.provider import _SYSTEM_PROMPT
 from zhuo_agent.core.tools.invocation import invoke_tool
 from zhuo_agent.core.tools.registry import ToolRegistry
 
@@ -43,6 +44,7 @@ class AgentLoop:
                     bus=self._bus,
                     run_id=context.run_id,
                     step=context.step,
+                    system=context.system_prompt(_SYSTEM_PROMPT),
                 )
             except asyncio.CancelledError:
                 context.mark_failed("cancelled")

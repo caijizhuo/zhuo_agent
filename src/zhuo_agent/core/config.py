@@ -27,10 +27,11 @@ def _find_project_root() -> Path:
     return Path.home() / ".zhuo"
 
 
-_PROJECT_ROOT = _find_project_root()
-_DEFAULT_LOG_FILE = str(_PROJECT_ROOT / "logs" / "core.log")
-_DEFAULT_CONFIG_PATH = str(_PROJECT_ROOT / "config.toml")
-_DEFAULT_TRACE_FILE = str(_PROJECT_ROOT / "traces" / "daemon.jsonl")
+PROJECT_ROOT = _find_project_root()
+_DEFAULT_LOG_FILE = str(PROJECT_ROOT / "logs" / "core.log")
+_DEFAULT_CONFIG_PATH = str(PROJECT_ROOT / "config.toml")
+_DEFAULT_TRACE_FILE = str(PROJECT_ROOT / "traces" / "daemon.jsonl")
+_DEFAULT_SESSIONS_DIR = PROJECT_ROOT / "sessions"
 
 
 @dataclass

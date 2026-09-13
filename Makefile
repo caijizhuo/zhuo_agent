@@ -21,3 +21,6 @@ replay:
 
 trace:
 	uv run zhuo trace 20260911-180948-4cf4fc --layer llm --raw
+
+chat:
+	uv run zhuo chat
