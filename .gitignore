@@ -13,3 +13,5 @@ runs/
 traces/
 *.log
 sessions/
+# 权限 always allow/always deny 缓存：由 zhuo-core 运行时写入项目根，不应提交
+policy.toml

@@ -1,7 +1,10 @@
-.PHONY: lint run ping test
+.PHONY: lint run ping test tui replay trace chat perm
 
 run:
 	uv run zhuo-core
+
+clean:
+	pkill -f zhuo-core
 
 ping:
 	uv run zhuo ping
@@ -24,3 +27,7 @@ trace:
 
 chat:
 	uv run zhuo chat
+
+# 端到端验证权限审批链路（需先在另一个终端 `make run` 启动 zhuo-core）
+perm:
+	uv run python trace_permission_flow.py
