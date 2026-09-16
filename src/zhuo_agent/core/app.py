@@ -24,6 +24,8 @@ from zhuo_agent.core.bus.commands import (
     PongResult,
     SessionCloseCommand,
     SessionCloseResult,
+    SessionCompactCommand,
+    SessionCompactResult,
     SessionCreateCommand,
     SessionCreateResult,
     SessionGetHistoryCommand,
@@ -34,6 +36,7 @@ from zhuo_agent.core.bus.commands import (
 from zhuo_agent.core.bus.envelope import EventPushEnvelope
 from zhuo_agent.core.config import _DEFAULT_SESSIONS_DIR, ZhuoConfig, get_config
 from zhuo_agent.core.events.bus import EventBus
+from zhuo_agent.core.llm.provider import AnthropicProvider
 from zhuo_agent.core.logging_setup import setup_logging
 from zhuo_agent.core.permissions.manager import PermissionManager
 from zhuo_agent.core.permissions.storage import _DEFAULT_POLICY_PATH, load_policy_file
@@ -138,6 +141,12 @@ class CoreApp:
         self._permission_manager.respond(cmd.tool_use_id, cmd.decision)
         return PermissionRespondResult()
 
+    # 手动压缩 session thread，将摘要持久化写入 thread.jsonl
+    async def _session_compact_handler(self, params: dict[str, Any]) -> SessionCompactResult:
+        assert self._sessions is not None
+        cmd = SessionCompactCommand.model_validate(params)
+        return await self._sessions.compact(cmd.session_id, cmd.focus)
+
     # 关闭 session 并返回 closed 状态
     async def _session_close_handler(self, params: dict[str, Any]) -> SessionCloseResult:
         assert self._sessions is not None
@@ -224,6 +233,8 @@ class CoreApp:
         store = SessionStore(_DEFAULT_SESSIONS_DIR)
         config = self._config
         assert config is not None
+        # 手动 /compact 用独立 provider，压缩过程不写入当前 run 的事件流
+        compact_provider = AnthropicProvider(config.llm.default_model)
         self._sessions = SessionManager(
             store,
             runner_factory=lambda: AgentRunner(
@@ -233,6 +244,7 @@ class CoreApp:
                 permission_manager=self._permission_manager,
             ),
             bus=self._bus,
+            provider=compact_provider,
         )
 
         server = SocketServer(
@@ -249,6 +261,7 @@ class CoreApp:
         server.register("session.get_history", self._session_history_handler)
         server.register("session.close", self._session_close_handler)
         server.register("permission.respond", self._permission_respond_handler)
+        server.register("session.compact", self._session_compact_handler)
 
         addr = await server.start()
         logger.info("zhuo-core %s listening addr=%s", zhuo_agent.__version__, addr)

@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+import importlib
+import logging
 import os
+import sys
 from datetime import UTC, datetime
+from types import ModuleType
 from typing import Any
 
 import anthropic
@@ -9,6 +14,56 @@ import anthropic
 from zhuo_agent.core.bus.events import LlmModelSelectedEvent, LlmTokenEvent, LlmUsageEvent
 from zhuo_agent.core.events.bus import EventBus
 from zhuo_agent.core.llm.types import LlmResponse, ToolCallBlock, UsageStats
+
+_MODEL_CONTEXT_WINDOWS: dict[str, int] = {
+    "claude-sonnet-4-6": 200_000,
+    "claude-haiku-4-5-20251001": 200_000,
+    "claude-opus-4-7": 200_000,
+    "deepseek-v4-flash": 1_000_000,
+}
+
+_MAX_STREAM_RETRIES = 3
+_RETRY_BACKOFF_S = (1.0, 2.0, 4.0)
+
+log = logging.getLogger(__name__)
+
+
+# anthropic SDK 的传输层可能是 httpx 或 httpx2（取决于解析到的 SDK 版本）。
+# 流式中断抛出的原始传输异常不会被 SDK 包装，因此按 SDK 实际使用的模块解析异常类型，
+# 否则 except 分支永远不会命中，重试形同虚设。
+def _load_transport_module() -> ModuleType | None:
+    # anthropic 在 import 时已把自己的传输层放进 sys.modules，优先复用同一实例
+    for name in ("httpx2", "httpx"):
+        module = sys.modules.get(name)
+        if module is not None:
+            return module
+    for name in ("httpx", "httpx2"):
+        try:
+            return importlib.import_module(name)
+        except ModuleNotFoundError:
+            continue
+    return None
+
+
+def _stream_drop_errors() -> tuple[type[BaseException], ...]:
+    module = _load_transport_module()
+    if module is None:
+        return ()
+    errors = (
+        getattr(module, "RemoteProtocolError", None),
+        getattr(module, "ReadError", None),
+        getattr(module, "ConnectError", None),
+    )
+    return tuple(e for e in errors if isinstance(e, type) and issubclass(e, BaseException))
+
+
+# 流式响应意外中断时需要重试的异常集合
+_STREAM_DROP_ERRORS: tuple[type[BaseException], ...] = _stream_drop_errors()
+
+
+# 返回指定模型的最大 context window token 数
+def _context_window(model: str) -> int:
+    return _MODEL_CONTEXT_WINDOWS.get(model, 200_000)
 
 # _SYSTEM_PROMPT = (
 #     "You are a helpful AI assistant. "
@@ -60,7 +115,7 @@ class AnthropicProvider:
             self._client = client
         self._model = model
 
-    # 流式调用 Anthropic API，逐 token 发布事件并返回 LlmResponse
+    # 流式调用 Anthropic API，逐 token 发布事件并返回 LlmResponse；网络中断时自动重试
     async def chat(
         self,
         messages: list[dict[str, object]],
@@ -91,7 +146,7 @@ class AnthropicProvider:
 
         kwargs: dict[str, Any] = {
             "model": self._model,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "system": system_blocks,
             "messages": messages,
         }
@@ -99,16 +154,42 @@ class AnthropicProvider:
             kwargs["tools"] = tools
 
         text_parts: list[str] = []
+        final_message: Any = None
 
-        async with self._client.messages.stream(**kwargs) as stream:
-            async for text in stream.text_stream:
-                await bus.publish(LlmTokenEvent(run_id=run_id, token=text, ts=_now()))
-                text_parts.append(text)
-            final_message = await stream.get_final_message()
+        for attempt in range(1, _MAX_STREAM_RETRIES + 1):
+            text_parts = []
+            try:
+                async with self._client.messages.stream(**kwargs) as stream:
+                    async for text in stream.text_stream:
+                        # Only publish token events on the first attempt to avoid TUI duplicates
+                        if attempt == 1:
+                            await bus.publish(LlmTokenEvent(run_id=run_id, token=text, ts=_now()))
+                        text_parts.append(text)
+                    final_message = await stream.get_final_message()
+                break  # success
+            except _STREAM_DROP_ERRORS as exc:
+                if attempt == _MAX_STREAM_RETRIES:
+                    log.error(
+                        "stream failed after %d attempts run_id=%s step=%d: %s",
+                        _MAX_STREAM_RETRIES, run_id, step, exc,
+                    )
+                    raise
+                delay = _RETRY_BACKOFF_S[attempt - 1]
+                log.warning(
+                    "stream dropped (attempt %d/%d) run_id=%s step=%d: %s — retrying in %.0fs",
+                    attempt, _MAX_STREAM_RETRIES, run_id, step, exc, delay,
+                )
+                await asyncio.sleep(delay)
+
+        assert final_message is not None
 
         usage = final_message.usage
         cache_read: int = getattr(usage, "cache_read_input_tokens", 0) or 0
         cache_create: int = getattr(usage, "cache_creation_input_tokens", 0) or 0
+        # 命中 prompt cache 的 token 不计入 input_tokens，必须单独累加，
+        # 否则对话越长、缓存命中越多，context_pct 低估得越厉害。
+        context_tokens = usage.input_tokens + cache_read + cache_create
+        context_pct = context_tokens / _context_window(self._model)
 
         await bus.publish(
             LlmUsageEvent(
@@ -117,6 +198,7 @@ class AnthropicProvider:
                 output_tokens=usage.output_tokens,
                 cache_read_input_tokens=cache_read,
                 cache_creation_input_tokens=cache_create,
+                context_pct=context_pct,
                 ts=_now(),
             )
         )
@@ -137,5 +219,6 @@ class AnthropicProvider:
                 output_tokens=usage.output_tokens,
                 cache_read_input_tokens=cache_read,
                 cache_creation_input_tokens=cache_create,
+                context_pct=context_pct,
             ),
         )

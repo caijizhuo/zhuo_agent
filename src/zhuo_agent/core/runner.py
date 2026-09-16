@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from zhuo_agent.core.bus.events import RunFinishedEvent, RunStartedEvent
+from zhuo_agent.core.compact.compactor import Compactor
 from zhuo_agent.core.config import ZhuoConfig
 from zhuo_agent.core.context import ExecutionContext
 from zhuo_agent.core.events.bus import EventBus, EventHandler
@@ -14,6 +15,11 @@ from zhuo_agent.core.events.writer import EventWriter
 from zhuo_agent.core.llm.base import LLMProvider
 from zhuo_agent.core.llm.provider import AnthropicProvider
 from zhuo_agent.core.loop import AgentLoop
+from zhuo_agent.core.memory.loader import (
+    GLOBAL_CONTEXT_PATH,
+    PROJECT_CONTEXT_PATH,
+    load_context_file,
+)
 from zhuo_agent.core.permissions.manager import PermissionManager
 from zhuo_agent.core.runs import RUNS_DIR, new_run_id
 from zhuo_agent.core.session.model import Session
@@ -113,6 +119,9 @@ class AgentRunner:
             notes = ""
         run_path.mkdir(parents=True, exist_ok=True)
 
+        global_ctx = load_context_file(GLOBAL_CONTEXT_PATH)
+        project_ctx = load_context_file(PROJECT_CONTEXT_PATH)
+
         task_manager = TaskManager(run_path / ".tasks")
 
         bus = self._bus if self._bus is not None else EventBus()
@@ -125,6 +134,8 @@ class AgentRunner:
             max_steps=self._config.agent.max_steps,
             prefill_messages=history,
             session_notes=notes,
+            global_context=global_ctx,
+            project_context=project_ctx,
         )
         prefill_len = len(history)
 
@@ -150,10 +161,19 @@ class AgentRunner:
                         self._trace,
                         include_payload=self._config.trace.include_llm_payload,
                     )
+                session_dir = (
+                    store.session_dir(session.id)
+                    if session is not None and store is not None
+                    else run_path
+                )
+                session_id_str = session.id if session is not None else ""
+                compactor = Compactor(bus, session_dir, session_id_str)
                 loop = AgentLoop(
                     provider, registry, bus,
                     permission_manager=self._permission_manager,
-                    session_id=session.id if session is not None else "",
+                    compactor=compactor,
+                    compact_threshold=self._config.compaction.auto_threshold,
+                    session_id=session_id_str,
                 )
                 await loop.run(context)
             except asyncio.CancelledError:

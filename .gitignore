@@ -15,3 +15,5 @@ traces/
 sessions/
 # 权限 always allow/always deny 缓存：由 zhuo-core 运行时写入项目根，不应提交
 policy.toml
+# agent 运行产物目录（见 context.md 的创建文件准则）
+workspace/

@@ -74,34 +74,37 @@ class PermissionManager:
         command = str(params.get("command", "")) if tool_name == "bash" else ""
         policy = self._policies.get(tool_name)
 
-        # Tier 1: deny_patterns（bash only，不可被缓存绕过）
+        # Tier 1: deny_patterns（bash only，最高优先级，不可被任何缓存绕过）
         if command and policy:
             for pat in policy.deny_patterns:
                 if re.search(pat, command):
                     logger.debug("permission: deny_pattern hit tool=%s", tool_name)
                     return False, "auto_deny"
 
-        # Tier 2: OUTSIDE_CWD_HEURISTICS（bash only，强制 ASK，不可被任何缓存绕过）
+        # Tier 2: session always 缓存
+        # 用户对某工具显式选过 always allow/deny，即视为永久决策，优先于 outside-cwd 强制 ASK；
+        # 否则每次 bash 带 cd/绝对路径时都要重复审批（缓存永远命中不了）。
+        session_key = (session_id, tool_name)
+        if session_key in self._session_always:
+            cached = self._session_always[session_key]
+            logger.debug(
+                "permission: session cache hit tool=%s decision=%s", tool_name, cached
+            )
+            return cached == "allow", f"auto_{cached}"
+
+        # Tier 3: persistent always（跨 session，来自 policy.toml）
+        if tool_name in self._persistent_always:
+            cached = self._persistent_always[tool_name]
+            logger.debug(
+                "permission: persistent cache hit tool=%s decision=%s", tool_name, cached
+            )
+            return cached == "allow", f"auto_{cached}"
+
+        # Tier 4: OUTSIDE_CWD_HEURISTICS（bash only，强制 ASK）
+        # 仅对"用户尚未对该工具做过 always 决策"的情况生效
         outside_cwd = bool(command and matches_outside_cwd(command))
 
         if not outside_cwd:
-            # Tier 3: session always 缓存
-            session_key = (session_id, tool_name)
-            if session_key in self._session_always:
-                cached = self._session_always[session_key]
-                logger.debug(
-                    "permission: session cache hit tool=%s decision=%s", tool_name, cached
-                )
-                return cached == "allow", f"auto_{cached}"
-
-            # Tier 4: persistent always（跨 session）
-            if tool_name in self._persistent_always:
-                cached = self._persistent_always[tool_name]
-                logger.debug(
-                    "permission: persistent cache hit tool=%s decision=%s", tool_name, cached
-                )
-                return cached == "allow", f"auto_{cached}"
-
             # Tier 5: allow_patterns（bash only）
             if command and policy:
                 for pat in policy.allow_patterns:
