@@ -1,3 +1,9 @@
+"""内建 read_file 工具：读取文本文件内容。
+
+按相对路径读取文件，超过 512KB 的部分截断并标注，含 ".." 的路径直接拒绝以防目录穿越。
+默认被权限策略放行（DEFAULT_POLICIES 中 read_file = ALLOW）。
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

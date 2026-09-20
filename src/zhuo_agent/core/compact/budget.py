@@ -1,3 +1,10 @@
+"""上下文预算控制：超长工具结果的截断。
+
+提供 truncate_tool_results()，把消息列表中长度超过 limit 的 tool_result 内容
+截断为前 keep 个字符并附加省略提示，返回新的消息列表。
+在回放历史（SessionStore.read_messages）时调用，避免单条工具输出撑爆上下文。
+"""
+
 from __future__ import annotations
 
 from typing import Any

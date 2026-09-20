@@ -1,3 +1,10 @@
+"""`zhuo trace` 子命令：读取并展示系统 trace 日志。
+
+按 run_id / layer / direction 过滤 daemon.jsonl 中的 TraceRecord，默认渲染为
+带颜色的单行摘要（各 kind 只提取关键字段），也支持 --raw 输出原始 NDJSON 与
+--follow 持续跟踪新增记录。
+"""
+
 from __future__ import annotations
 
 import json

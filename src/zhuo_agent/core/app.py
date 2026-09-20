@@ -1,3 +1,11 @@
+"""core 守护进程主体：组装并托管整个 agent 运行时。
+
+CoreApp 负责加载配置、初始化日志/trace/权限/MCP，创建 EventBus 与 TCP
+SocketServer，把 core.ping、agent.run、session.*、permission.respond 等
+JSON-RPC 方法注册到服务器，最后等待 SIGINT/SIGTERM 并优雅关闭所有子系统。
+是 `zhuo-core` 命令的实现，也是 CLI/TUI 客户端唯一的后端。
+"""
+
 from __future__ import annotations
 
 import asyncio

@@ -1,3 +1,10 @@
+"""run 的标识与目录约定。
+
+定义顶层 runs 目录常量，并提供 run_id 生成（时间戳 + 随机后缀）、
+run 目录 / events.jsonl 路径推导、目录创建等纯路径工具函数。
+不产生副作用，供 app、runner 等模块共享。
+"""
+
 from __future__ import annotations
 
 import uuid

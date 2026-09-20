@@ -1,3 +1,10 @@
+"""trace 的异步落盘。
+
+TraceWriter 用 asyncio.Queue + 后台 drain 协程，把 emit() 进来的 TraceRecord
+非阻塞地追加写入 daemon.jsonl（每条立即 flush）；stop() 会先等队列排空。
+让 IPC/事件/LLM 等热点路径的 trace 记录不拖慢主流程。
+"""
+
 from __future__ import annotations
 
 import asyncio

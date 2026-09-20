@@ -1,3 +1,9 @@
+"""内建 write_file 工具：写文本文件。
+
+自动创建父目录，已存在则覆盖；内容超过 1MB 直接拒绝，含 ".." 的路径拒绝以防目录穿越。
+默认需要用户审批，是 agent 修改磁盘内容的主要途径。
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

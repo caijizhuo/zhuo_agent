@@ -1,3 +1,10 @@
+"""core 侧的事件推送广播器。
+
+IpcEventBroadcaster 作为 EventBus 订阅者，按 topic（fnmatch 模式）和
+scope（global 或 run:<id>）把事件过滤后以 EventPushEnvelope 写入各客户端连接；
+连接写失败时清理死订阅，并可选地产生 CORE→CLIENT 的 trace 记录。
+"""
+
 from __future__ import annotations
 
 import asyncio

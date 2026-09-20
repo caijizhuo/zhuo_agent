@@ -1,3 +1,10 @@
+"""任务的数据模型。
+
+定义 TaskStatus（pending / in_progress / completed）与 Task 数据类，
+并提供与 JSON 文件格式一致的 to_dict / from_dict 序列化方法，
+供 TaskManager 落盘与读取任务时使用。
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,3 +1,11 @@
+"""Skill（斜杠命令）的定义、解析与查找。
+
+把 Markdown 文件（frontmatter 含 description/allowed_tools，正文即 prompt 模板）
+解析为 Skill 对象，并按 project 本地 > 用户全局 > 内建 三级优先级查找与列举。
+TUI 用它做 `/` 补全，SessionManager 用它把 `/xxx args` 展开为提示覆盖、
+工具白名单，并把 $ARGUMENTS 替换为实际参数。
+"""
+
 from __future__ import annotations
 
 import re

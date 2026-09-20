@@ -1,3 +1,12 @@
+"""Textual TUI 应用主体：交互式终端前端。
+
+负责连接 core 并订阅全部事件主题（必要时回放历史 run），把事件流渲染成终端界面：
+LLM token 在同一块内流式累积并最终转 Markdown、工具调用渲染为可点击展开/折叠的卡片、
+权限请求显示为内联键盘选择控件（y/a/n/d 或方向键）、子 agent 用 ┌─/└─ 树形前缀展示，
+并提供 `/` 斜杠命令补全（含 /compact）与 context 占用率进度条。断线后自动重连。
+文件内还定义了所有自定义 widget 与输入框。
+"""
+
 from __future__ import annotations
 
 import asyncio

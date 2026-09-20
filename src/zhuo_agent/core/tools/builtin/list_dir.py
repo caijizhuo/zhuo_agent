@@ -1,3 +1,9 @@
+"""内建 list_dir 工具：以树状结构列出目录内容。
+
+递归深度上限 4（默认 2）、总条目上限 200，超出后截断提示；包含隐藏项、
+按目录优先排序，含 ".." 的路径拒绝以防目录穿越。默认被权限策略放行。
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,3 +1,10 @@
+"""进程日志初始化。
+
+按配置决定日志级别与 text/json 两种格式，为 root logger 挂上输出到 stderr
+的 handler 和按 10MB×5 轮转的文件 handler（目录自动创建）。
+由 core 守护进程和 CLI 入口在启动时各调用一次。
+"""
+
 from __future__ import annotations
 
 import logging

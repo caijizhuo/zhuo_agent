@@ -1,3 +1,10 @@
+"""把 MCP 工具适配为本地 BaseTool。
+
+McpTool 包装一个 McpClient 上的工具定义，直接采用 MCP 提供的 input_schema，
+并以 `{server}__{tool}` 命名注册进 ToolRegistry，使 agent 在调用时无需区分本地工具
+与 MCP 工具；服务不可用时返回 is_error 结果而非抛异常。
+"""
+
 from __future__ import annotations
 
 from typing import Any

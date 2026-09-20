@@ -1,3 +1,9 @@
+"""`zhuo ping` 子命令：探测 core 守护进程是否在线。
+
+以 JSON-RPC 方式向 daemon 发送 `core.ping`，解析 PongResult 并打印
+服务端版本、uptime 与本地往返延迟；连接失败则报错退出。
+"""
+
 from __future__ import annotations
 
 import asyncio

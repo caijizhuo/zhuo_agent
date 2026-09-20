@@ -1,3 +1,11 @@
+"""单次 agent run 的装配与执行（AgentRunner）。
+
+把配置、provider、事件总线、权限管理器、MCP 与后台任务注册表等依赖汇集起来，
+为一次 run 准备执行上下文（含 session 历史、记忆层、任务管理器）、构建工具注册表、
+挂上 EventWriter 与 trace，然后交给 AgentLoop 跑 plan→act→observe，
+最后发布 RunFinishedEvent 并返回 RunOutcome。
+"""
+
 from __future__ import annotations
 
 import asyncio

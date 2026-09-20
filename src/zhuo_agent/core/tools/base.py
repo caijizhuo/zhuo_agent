@@ -1,3 +1,10 @@
+"""工具的统一抽象。
+
+定义 BaseTool 抽象基类（name/description/input_schema/params_model 与 invoke 契约）
+和 ToolResult 返回值数据类（内容、是否错误、错误类型）。
+所有内建工具与 MCP 工具都实现该接口，从而能被 ToolRegistry 统一注册与调用。
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

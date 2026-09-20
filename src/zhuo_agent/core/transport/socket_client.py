@@ -1,3 +1,10 @@
+"""客户端侧 TCP IPC 客户端。
+
+SocketClient 管理与 core 守护进程的连接：send_command 以 JSON-RPC 发送命令并
+按 id 等待响应，run_event_loop 持续读行并把服务器推送的 event 分发给已注册
+回调（CLI 与 TUI 都用它实现流式输出）。失败响应统一抛 IpcError。
+"""
+
 from __future__ import annotations
 
 import asyncio

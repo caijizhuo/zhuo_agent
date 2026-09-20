@@ -1,3 +1,11 @@
+"""core 侧 TCP IPC 服务端。
+
+SocketServer 监听 loopback 端口，按方法名注册命令 handler，逐行解析 NDJSON
+形式的 JSON-RPC 请求并分发；每条命令独立成 task 执行，使长时间运行的
+session.send_message 不会阻塞 permission.respond 等并发命令。
+同时负责错误响应映射、连接生命周期清理与 IPC 层 trace 记录。
+"""
+
 from __future__ import annotations
 
 import asyncio

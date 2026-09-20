@@ -1,3 +1,10 @@
+"""工具注册表。
+
+ToolRegistry 以名称为键保存 BaseTool（同名覆盖），提供按名查找，并把所有工具
+转成 Anthropic 要求的 {name, description, input_schema} schema 列表交给 LLM。
+每次 run 会按工具白名单与 MCP 可用性新建一个注册表实例。
+"""
+
 from __future__ import annotations
 
 from zhuo_agent.core.tools.base import BaseTool

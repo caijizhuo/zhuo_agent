@@ -1,3 +1,10 @@
+"""客户端→core 的命令模型定义。
+
+用 pydantic 描述 ping、agent.run、event.subscribe、session.* 、permission.respond
+等命令及其结果结构，并导出按 type 字段取值的判别联合 Command，
+供 SocketServer 校验入参、CLI/TUI 解析响应。
+"""
+
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal

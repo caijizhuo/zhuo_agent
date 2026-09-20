@@ -1,3 +1,10 @@
+"""core→客户端的事件模型定义，即整个系统的可观测事件词汇表。
+
+覆盖 run/step/tool/llm/session/permission/subagent/skill 等各类事件，
+并导出按 type 字段取值的判别联合 Event；事件经 EventBus 广播后被写入
+events.jsonl、推送给订阅客户端并回放，也是 TUI 展示进度的依据。
+"""
+
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal

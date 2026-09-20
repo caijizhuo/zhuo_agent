@@ -1,3 +1,9 @@
+"""zhuo-tui 可执行入口。
+
+解析 `--replay` 参数、读取配置，并把日志初始化成只写文件（否则会干扰 Textual 渲染），
+最后启动 ZhuoTuiApp。对应 pyproject 中 `zhuo-tui` 命令。
+"""
+
 from __future__ import annotations
 
 import argparse

@@ -1,3 +1,10 @@
+"""LLM 调用的 trace 装饰器。
+
+TracingProvider 以装饰器方式包裹任意 LLMProvider：调用前记录 CORE→LLM 的
+api_call（完整 messages/tools/system，或按配置退化为计数摘要），调用后记录
+LLM→CORE 的 api_response（stop_reason、用量、耗时）。自身不改变 provider 行为。
+"""
+
 from __future__ import annotations
 
 import dataclasses

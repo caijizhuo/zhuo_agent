@@ -1,3 +1,10 @@
+"""CLI 主入口：`zhuo` 命令的参数解析与子命令分发。
+
+属于 CLI 层（另一层是 TUI），本身不实现业务逻辑：解析 `--version` 与
+ping/chat/run/core/trace 等子命令后，初始化配置与日志，再转交对应 cmd_* 函数，
+由它们通过 TCP 与 core 守护进程通信。
+"""
+
 from __future__ import annotations
 
 import argparse

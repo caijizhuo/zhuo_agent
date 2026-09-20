@@ -1,3 +1,11 @@
+"""单次 run 的执行上下文（ExecutionContext）。
+
+持有 run_id、goal、消息历史、步数与状态，负责把 LLM 回复和工具结果按
+Anthropic messages 格式累积进历史、拼接 system prompt（base 或 override 加
+全局/项目/会话记忆），并提供 mark_success / mark_failed 等终止判定。
+是 AgentLoop 唯一的状态载体。
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

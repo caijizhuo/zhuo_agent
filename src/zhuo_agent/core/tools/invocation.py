@@ -1,3 +1,11 @@
+"""单次工具调用的统一执行管线。
+
+invoke_tool() 串起完整流程：发布 ToolCallStarted 事件 → 查找工具 → 用 params_model
+校验参数 → 走权限审批（拒绝时返回引导 Agent 换方案的错误）→ 带超时执行 →
+发布 finished/failed 事件；对 runtime_error 与 rate_limited 做指数退避重试。
+任何失败都转换成 ToolResult 而非抛异常，保证 agent 循环不中断。
+"""
+
 from __future__ import annotations
 
 import asyncio

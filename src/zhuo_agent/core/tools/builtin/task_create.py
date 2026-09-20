@@ -1,3 +1,9 @@
+"""内建 task_create 工具：创建待办任务。
+
+把目标拆解为可跟踪的任务（可指定 blocked_by 依赖），交给共享的 TaskManager 落盘，
+并返回任务 JSON。system prompt 要求每次 run 的第一个工具调用必须是它。
+"""
+
 from __future__ import annotations
 
 import json

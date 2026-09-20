@@ -1,3 +1,9 @@
+"""进程内事件总线（EventBus）。
+
+提供极简的订阅/发布：publish 按注册顺序依次 await 所有 handler。
+core 用它把 run/step/tool 等事件扇出到事件日志、IPC 广播器和 trace 等多个消费者。
+"""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable

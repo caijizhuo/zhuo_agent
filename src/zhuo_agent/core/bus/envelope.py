@@ -1,3 +1,10 @@
+"""JSON-RPC 2.0 报文封装与错误码。
+
+定义请求/成功/错误响应以及事件推送信封（EventPushEnvelope）的 pydantic 模型，
+并集中声明 PARSE_ERROR、METHOD_NOT_FOUND 等标准错误码与 HandlerError 异常。
+是 core 与 CLI/TUI 之间 IPC 协议的数据契约。
+"""
+
 from __future__ import annotations
 
 from typing import Any, Literal

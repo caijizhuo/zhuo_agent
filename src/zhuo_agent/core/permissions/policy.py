@@ -1,3 +1,11 @@
+"""权限策略的定义与静态评估规则。
+
+定义 PermissionDecision（allow/deny/ask）、ToolPolicy（默认决策 + 允许/拒绝正则）
+与各内建工具的默认策略，并提供两套判定：evaluate() 做无状态的四层评估（deny 正则
+优先、outside-cwd 强制 ASK 不可绕过、allow 正则、工具默认值），param_preview() 生成
+审批事件里人类可读的参数摘要。
+"""
+
 from __future__ import annotations
 
 import re

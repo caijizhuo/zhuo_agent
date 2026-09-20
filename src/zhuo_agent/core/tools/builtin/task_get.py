@@ -1,3 +1,8 @@
+"""内建 task_get 工具：按 ID 读取单个任务的完整详情。
+
+从 TaskManager 取回任务并序列化为 JSON 返回，任务不存在时返回错误结果。
+"""
+
 from __future__ import annotations
 
 import json

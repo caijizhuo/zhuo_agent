@@ -1,3 +1,11 @@
+"""subagent 工具：派生子 agent 并回收其结果。
+
+SpawnAgentTool 在全新的空上下文中派生一个子 agent（不继承父对话历史），
+支持前台阻塞等待与后台并行两种模式，子 bus 的事件会桥接到父 bus 以便 TUI
+渲染嵌套进度；嵌套深度上限为 2，可按 subagent_type 载入角色配置过滤工具。
+AgentResultTool 用于查询后台子 agent 的状态与最终结果。
+"""
+
 from __future__ import annotations
 
 import asyncio

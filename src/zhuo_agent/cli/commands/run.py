@@ -1,3 +1,9 @@
+"""`zhuo run --goal "..."` 子命令：一次性执行单个 agent 任务。
+
+连接 core、订阅 run/step/tool/llm 事件，发送 `agent.run` 后由 StdoutPrinter
+把运行进度格式化输出到终端，直到收到 run.finished 并以任务状态决定退出码。
+"""
+
 from __future__ import annotations
 
 import asyncio

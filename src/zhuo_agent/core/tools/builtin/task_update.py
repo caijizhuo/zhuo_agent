@@ -1,3 +1,9 @@
+"""内建 task_update 工具：更新任务状态与依赖。
+
+支持把任务置为 pending/in_progress/completed，以及增删 blocked_by；
+标记 completed 时 TaskManager 会自动把它从其他任务的依赖中移除。返回更新后的任务 JSON。
+"""
+
 from __future__ import annotations
 
 import json

@@ -1,3 +1,11 @@
+"""子 agent 角色配置（AgentProfile）的查找与解析。
+
+定义角色数据类（名称、描述、system prompt、可用工具、模型）以及 project 本地
+> 用户全局 > 内建 三级覆盖的加载器；配置为 TOML 文件。
+SpawnAgentTool 通过 subagent_type 参数用它加载 planner/executor/reviewer 等角色，
+决定子 agent 的人设与工具白名单。
+"""
+
 from __future__ import annotations
 
 import tomllib

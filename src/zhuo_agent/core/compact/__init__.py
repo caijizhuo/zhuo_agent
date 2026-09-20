@@ -1,3 +1,5 @@
+"""compact 子系统：上下文压缩与工具结果截断。"""
+
 from zhuo_agent.core.compact.budget import truncate_tool_results
 from zhuo_agent.core.compact.compactor import CompactionResult, Compactor
 

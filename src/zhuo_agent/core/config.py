@@ -1,3 +1,11 @@
+"""运行时配置：数据类定义、默认值与分层加载逻辑。
+
+定义 ZhuoConfig（含 logging/agent/llm/trace/permission/compaction/mcp 子配置）
+以及项目根目录的定位规则，供全局导入各默认路径。get_config() 按
+默认值 → config.toml → .env → ZHUO_* 环境变量的顺序合并，并对每个字段做
+类型与取值校验，非法配置直接退出进程。
+"""
+
 from __future__ import annotations
 
 import os

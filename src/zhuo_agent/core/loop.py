@@ -1,3 +1,10 @@
+"""agent 核心循环：逐步驱动 LLM 与工具直到任务结束。
+
+每个 step 先调用 LLM（plan），把回复写入上下文（observe），再按 stop_reason
+执行工具并把结果回填（act），随后判断终止条件（end_turn 成功、超过 max_steps、
+LLM 报错）并按需触发上下文自动压缩，全程通过 EventBus 广播 step 事件。
+"""
+
 from __future__ import annotations
 
 import asyncio

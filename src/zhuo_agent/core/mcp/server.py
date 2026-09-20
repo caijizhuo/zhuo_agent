@@ -1,3 +1,10 @@
+"""MCP server 连接的生命周期管理。
+
+McpServerManager 在 daemon 启动时按 config.toml 的 [mcp.servers] 逐个建立连接、
+发现工具并缓存（单个 server 失败只记日志，不阻塞启动），供 AgentRunner 每次构建
+工具注册表时注入，daemon 退出时统一 stop_all() 关闭连接。
+"""
+
 from __future__ import annotations
 
 import logging

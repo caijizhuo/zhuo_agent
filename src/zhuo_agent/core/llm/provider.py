@@ -1,3 +1,12 @@
+"""Anthropic LLM 接入实现。
+
+AnthropicProvider 用官方 SDK 做流式调用：把 system prompt 与最后一个工具 schema
+标记为 ephemeral cache 以命中 prompt caching，逐 token 发布 LlmTokenEvent，
+结束后结合缓存命中量计算 context_pct 并发布 LlmUsageEvent，最后把响应规整为
+LlmResponse。流式连接意外中断时按 1/2/4 秒退避自动重试（首轮失败不重复推 token）。
+本文件同时定义默认 system prompt（含强制 task 协议）。
+"""
+
 from __future__ import annotations
 
 import asyncio

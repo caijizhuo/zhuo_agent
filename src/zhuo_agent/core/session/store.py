@@ -1,3 +1,11 @@
+"""会话数据的文件持久化（SessionStore）。
+
+约定 sessions/<sid>/ 下的目录结构：meta.json 存元信息、thread.jsonl 存
+Anthropic 格式的消息历史、notes.md 存 agent 主动记录的笔记、runs/ 存各次 run。
+读写 thread 时会跳过损坏行、裁掉尾部未配对的 tool_use 并截断超长工具结果，
+以保证回放出的 messages 始终能被 API 接受；压缩时覆盖写入并备份原文件。
+"""
+
 from __future__ import annotations
 
 import json

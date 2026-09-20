@@ -1,3 +1,9 @@
+"""内建 note_save 工具：把长期有效的事实写入会话笔记。
+
+追加到当前 session 的 notes.md（由 SessionStore 维护），这些笔记会在同一会话
+后续 run 中注入 system prompt 的 Session Notes 段落，实现跨轮次记忆。
+"""
+
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict

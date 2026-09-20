@@ -1,3 +1,12 @@
+"""工具调用权限的运行时判定与审批等待。
+
+PermissionManager 按六级顺序评估每个工具调用：deny_patterns → session 级 always 缓存
+→ 持久化 always 缓存 → outside-cwd 强制 ASK → allow_patterns → 工具默认策略。
+命中 ASK 时挂起一个 Future、向客户端推送 permission.requested 事件并等待
+permission.respond（带超时）；用户选择 always 会同时写入 session 缓存和 policy.toml，
+客户端断连时由 cancel_session 统一拒绝，避免协程永久挂起。
+"""
+
 from __future__ import annotations
 
 import asyncio

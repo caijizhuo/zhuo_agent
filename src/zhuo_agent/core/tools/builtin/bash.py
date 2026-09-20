@@ -1,3 +1,10 @@
+"""内建 bash 工具：执行 shell 命令。
+
+在子进程中执行非交互式命令并合并 stdout/stderr，输出超过 64KB 截断，
+超时（默认 60s，上限 120s）或非零退出码都作为错误结果返回。
+按权限策略默认需要用户审批，且带 cd/绝对路径等 cwd 外操作会被强制询问。
+"""
+
 from __future__ import annotations
 
 import asyncio

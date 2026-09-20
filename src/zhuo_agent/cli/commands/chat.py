@@ -1,3 +1,10 @@
+"""`zhuo chat` 子命令：命令行下的多轮交互式会话。
+
+连接 core 后订阅 session/tool/llm/permission 等事件，循环读取 stdin 发送
+`session.send_message`，并把流式 token 与工具调用实时打印；出现权限审批请求时
+将用户输入的 y/a/n/d 转成 permission.respond 决策。
+"""
+
 from __future__ import annotations
 
 import asyncio

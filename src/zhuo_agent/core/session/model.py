@@ -1,3 +1,10 @@
+"""会话的数据模型与状态取值。
+
+定义 SessionMode（one_shot / chat）与 SessionStatus（active /
+waiting_for_input / closed）两个 Literal 类型，以及 Session 数据类及其
+to_dict / from_dict 序列化方法，供 SessionStore 读写 meta.json 使用。
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

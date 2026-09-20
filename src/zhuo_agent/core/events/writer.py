@@ -1,3 +1,10 @@
+"""事件持久化：把总线事件落盘为 JSONL。
+
+EventWriter 作为 EventBus 订阅者，用 async with 打开 run 目录下的 events.jsonl，
+把每个事件以单行 JSON 追加写入并 flush；写入失败只记日志，不影响主流程。
+落盘结果供 `zhuo trace`、事件回放和结果排查使用。
+"""
+
 from __future__ import annotations
 
 import logging

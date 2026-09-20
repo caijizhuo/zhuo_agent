@@ -1,3 +1,11 @@
+"""会话生命周期管理（SessionManager）。
+
+负责创建 chat/one_shot 会话、接收用户消息并串行驱动一次 agent run（按 session
+加锁防止交替写文件）、解析 `/skill` 前缀展开为提示覆盖与工具白名单、维护
+active/waiting_for_input/closed 状态流转，以及支持手动压缩会话历史。
+是 app 层 session.* 命令的实际实现者。
+"""
+
 from __future__ import annotations
 
 import asyncio

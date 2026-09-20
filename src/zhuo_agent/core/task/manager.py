@@ -1,3 +1,11 @@
+"""任务（todo）的持久化管理（TaskManager）。
+
+以 task_<id>.json 为存储单元，在指定目录下提供创建、读取、更新状态、列出全部
+任务的能力，并维护 blocked_by 依赖：创建时校验依赖存在，任务完成时自动把它
+从其他任务的依赖列表中清除。format_list() 生成供 task_list 工具返回给 Agent
+的清单文本，目录通常位于 run 的 .tasks 子目录下。
+"""
+
 from __future__ import annotations
 
 import json

@@ -1,3 +1,11 @@
+"""上下文压缩：把长对话摘要成可交接的 handoff summary。
+
+Compactor 用固定的六段式 prompt 让 LLM 把消息历史压缩为摘要，之后把上下文
+替换为「摘要 + 确认 + 继续」三条消息（末尾保持 user 轮次，以兼容带 tools 的
+请求），并把摘要备份成 session 目录下的 summary_<ts>.md。
+既支持 run 中的自动压缩（loop 依据 context_pct 触发），也支持 /compact 手动压缩。
+"""
+
 from __future__ import annotations
 
 import logging

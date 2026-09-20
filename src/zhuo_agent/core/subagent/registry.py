@@ -1,3 +1,10 @@
+"""后台 subagent 任务的注册表（BackgroundTaskRegistry）。
+
+以 run_id 为键记录后台子 agent 的 asyncio.Task 与其 ExecutionContext，
+提供注册、按 run_id 查询（供 agent_result 工具取结果）以及 daemon 退出时
+批量取消全部未完成任务的 cancel_all()。daemon 内跨 run 共享同一实例。
+"""
+
 from __future__ import annotations
 
 import asyncio

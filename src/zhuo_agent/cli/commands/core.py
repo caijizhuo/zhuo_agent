@@ -1,3 +1,9 @@
+"""`zhuo core` 子命令：管理 core 守护进程的启动、停止与状态查询。
+
+通过 TCP 端口探测判断 daemon 是否存活，用 ~/.zhuo/zhuo-core.pid 记录后台
+进程 PID；start 以子进程方式拉起 `python -m zhuo_agent.core`，stop 发送 SIGTERM。
+"""
+
 from __future__ import annotations
 
 import asyncio

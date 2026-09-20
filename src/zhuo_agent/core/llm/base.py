@@ -1,3 +1,10 @@
+"""LLM provider 的抽象接口。
+
+用 Protocol 描述 chat() 的签名：接收 messages、tool_schemas、事件总线与 run 信息，
+流式产出事件并返回 LlmResponse。让 AgentLoop 只依赖此协议，
+从而可以替换具体实现（如测试桩或 TracingProvider 包装）。
+"""
+
 from __future__ import annotations
 
 from typing import Protocol

@@ -1,3 +1,10 @@
+"""MCP（Model Context Protocol）协议客户端。
+
+McpClient 以 JSON-RPC 2.0 与外部 MCP server 通信，支持 stdio 子进程与 TCP
+两种 transport：完成 initialize 握手、tools/list 发现工具、tools/call 调用工具，
+读操作带 30 秒超时并在异常时抛 McpServerUnavailableError。close() 会终止子进程。
+"""
+
 from __future__ import annotations
 
 import asyncio

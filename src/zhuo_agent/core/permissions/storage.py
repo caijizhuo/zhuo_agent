@@ -1,3 +1,10 @@
+"""审批决策的持久化：policy.toml 的读写。
+
+以极简的逐行解析读写 PROJECT_ROOT/policy.toml 的 [always] 节，把
+`工具名 = "allow"/"deny"` 映射加载为字典或整体覆盖写回。
+让用户选择的「always allow / always deny」跨 daemon 重启依然生效。
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
