@@ -38,11 +38,13 @@ from zhuo_agent.core.config import _DEFAULT_SESSIONS_DIR, ZhuoConfig, get_config
 from zhuo_agent.core.events.bus import EventBus
 from zhuo_agent.core.llm.provider import AnthropicProvider
 from zhuo_agent.core.logging_setup import setup_logging
+from zhuo_agent.core.mcp.server import McpServerManager
 from zhuo_agent.core.permissions.manager import PermissionManager
 from zhuo_agent.core.permissions.storage import _DEFAULT_POLICY_PATH, load_policy_file
 from zhuo_agent.core.runner import AgentRunner
 from zhuo_agent.core.runs import events_file, new_run_id
 from zhuo_agent.core.session import SessionManager, SessionStore
+from zhuo_agent.core.subagent.registry import BackgroundTaskRegistry
 from zhuo_agent.core.trace.record import TraceRecord
 from zhuo_agent.core.trace.writer import TraceWriter
 from zhuo_agent.core.transport.ipc_broadcaster import IpcEventBroadcaster
@@ -65,6 +67,9 @@ class CoreApp:
         self._running_runs: set[asyncio.Task[Any]] = set()
         self._sessions: SessionManager | None = None
         self._permission_manager: PermissionManager | None = None
+        self._mcp_manager: McpServerManager | None = None
+        # 跨 run 共享的后台 subagent 注册表，daemon 退出时统一取消
+        self._task_registry = BackgroundTaskRegistry()
 
     # 处理 core.ping 请求，返回服务版本、运行时长和接收时间
     async def _ping_handler(self, params: dict[str, Any]) -> PongResult:
@@ -233,6 +238,13 @@ class CoreApp:
         store = SessionStore(_DEFAULT_SESSIONS_DIR)
         config = self._config
         assert config is not None
+
+        # 启动配置中声明的所有 MCP server；单个失败只记日志，不阻塞 daemon 启动
+        self._mcp_manager = McpServerManager()
+        if config.mcp.servers:
+            logger.info("mcp: starting %d server(s)", len(config.mcp.servers))
+            await self._mcp_manager.start_all(config.mcp.servers)
+
         # 手动 /compact 用独立 provider，压缩过程不写入当前 run 的事件流
         compact_provider = AnthropicProvider(config.llm.default_model)
         self._sessions = SessionManager(
@@ -242,6 +254,8 @@ class CoreApp:
                 bus=self._bus,
                 trace=self._trace,
                 permission_manager=self._permission_manager,
+                mcp_manager=self._mcp_manager,
+                task_registry=self._task_registry,
             ),
             bus=self._bus,
             provider=compact_provider,
@@ -279,6 +293,10 @@ class CoreApp:
             run_task.cancel()
         if self._running_runs:
             await asyncio.gather(*self._running_runs, return_exceptions=True)
+        # 取消仍未结束的后台 subagent 任务，避免退出时留下悬空协程
+        await self._task_registry.cancel_all()
+        if self._mcp_manager is not None:
+            await self._mcp_manager.stop_all()
         await server.stop()
         if self._trace is not None:
             await self._trace.stop()

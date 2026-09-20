@@ -3,9 +3,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from typing import Any
 
 from rich.markdown import Markdown
+from rich.markup import escape
 from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -16,6 +18,7 @@ from textual.widget import Widget
 from textual.widgets import Label, Static, TextArea
 
 from zhuo_agent.core.config import ZhuoConfig
+from zhuo_agent.core.skills.loader import SkillLoader
 from zhuo_agent.core.transport.socket_client import IpcError, SocketClient
 
 log = logging.getLogger(__name__)
@@ -296,6 +299,85 @@ class PermissionBlock(Static):
         self.post_message(self.Resolved(self, decision))
 
 
+class SlashCompleteWidget(Static):
+    """斜杠命令自动补全弹出框：输入 / 时显示可用 skill 列表并支持键盘筛选与选择。"""
+
+    can_focus = False
+
+    DEFAULT_CSS = """
+    SlashCompleteWidget {
+        height: auto;
+        padding: 0 1;
+        margin: 0 2;
+        background: $surface;
+        border: round $surface-lighten-2;
+    }
+    """
+
+    # 用户选中某条命令时发布
+    class Selected(Message):
+        # 初始化，携带被选中的 skill 名称
+        def __init__(self, skill_name: str) -> None:
+            self.skill_name = skill_name
+            super().__init__()
+
+    # 初始化，接收全量 (name, description) 列表
+    def __init__(self, items: list[tuple[str, str]]) -> None:
+        super().__init__("")
+        self._all_items = items
+        self._filtered: list[tuple[str, str]] = list(items)
+        self._cursor = 0
+
+    # 根据查询字符串筛选列表，重置光标并重新渲染
+    def set_query(self, query: str) -> None:
+        q = query.lower()
+        self._filtered = [(n, d) for n, d in self._all_items if not q or q in n.lower()]
+        self._cursor = min(self._cursor, max(0, len(self._filtered) - 1))
+        if self.is_attached:
+            self._redraw()
+
+    # 向上移动光标并重新渲染
+    def move_up(self) -> None:
+        if self._filtered:
+            self._cursor = (self._cursor - 1) % len(self._filtered)
+            self._redraw()
+
+    # 向下移动光标并重新渲染
+    def move_down(self) -> None:
+        if self._filtered:
+            self._cursor = (self._cursor + 1) % len(self._filtered)
+            self._redraw()
+
+    # 选中当前光标项并发布 Selected 消息
+    def select_current(self) -> None:
+        if self._filtered:
+            self.post_message(self.Selected(self._filtered[self._cursor][0]))
+
+    # 返回当前是否有可选项
+    def has_selection(self) -> bool:
+        return len(self._filtered) > 0
+
+    def on_mount(self) -> None:
+        self._redraw()
+
+    # 渲染筛选后的命令列表，高亮当前光标项
+    def _redraw(self) -> None:
+        if not self._filtered:
+            self.update("[dim]  no matching commands[/dim]")
+            return
+        lines: list[str] = []
+        for i, (name, desc) in enumerate(self._filtered):
+            # name/desc 来自 skill 文件，转义 "[" 以免破坏 markup
+            safe_name = escape(name)
+            desc_part = f"  [dim]{escape(desc)}[/dim]" if desc else ""
+            if i == self._cursor:
+                lines.append(f"  [bold cyan]❯ /{safe_name}[/bold cyan]{desc_part}")
+            else:
+                lines.append(f"    [cyan]/{safe_name}[/cyan]{desc_part}")
+        lines.append("[dim]  ↑↓ navigate   tab/enter select   esc dismiss[/dim]")
+        self.update("\n".join(lines))
+
+
 class ChatTextArea(TextArea):
     """支持 Enter 提交、Cmd/Shift/Alt+Enter 换行的多行聊天输入框。"""
 
@@ -323,12 +405,36 @@ class ChatTextArea(TextArea):
             self.value = area.text
             super().__init__()
 
-    # Enter 提交；Cmd/Shift/Alt+Enter 插入换行；其余键交回 TextArea 默认行为
+    # 输入内容以 / 开头且无空格时发布，query 为 / 之后的字符串（可为空串）；None 表示收起弹窗
+    class SlashChanged(Message):
+        def __init__(self, query: str | None) -> None:
+            self.query = query
+            super().__init__()
+
+    # 文本变化时检测 / 前缀，通知宿主 App 更新自动补全弹窗
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        text = self.text
+        if text.startswith("/") and " " not in text:
+            self.post_message(ChatTextArea.SlashChanged(query=text[1:]))
+        else:
+            self.post_message(ChatTextArea.SlashChanged(query=None))
+
+    # Enter 提交；↑↓/Tab/Esc 路由到自动补全弹窗；Cmd/Shift/Alt+Enter 插入换行；其余键交回 TextArea
     async def _on_key(self, event: events.Key) -> None:
         key = event.key
+
+        popup: SlashCompleteWidget | None = None
+        try:
+            popup = self.app.query_one(SlashCompleteWidget)
+        except NoMatches:
+            popup = None
+
         if key == "enter":
             event.stop()
             event.prevent_default()
+            if popup is not None and popup.has_selection():
+                popup.select_current()
+                return
             if self.text.strip():
                 self.post_message(self.Submitted(self))
             return
@@ -338,6 +444,27 @@ class ChatTextArea(TextArea):
             if not self.read_only:
                 self.insert("\n")
             return
+        if popup is not None:
+            if key == "up":
+                event.stop()
+                event.prevent_default()
+                popup.move_up()
+                return
+            elif key == "down":
+                event.stop()
+                event.prevent_default()
+                popup.move_down()
+                return
+            elif key == "tab":
+                event.stop()
+                event.prevent_default()
+                popup.select_current()
+                return
+            elif key == "escape":
+                event.stop()
+                event.prevent_default()
+                self.post_message(ChatTextArea.SlashChanged(query=None))
+                return
         await super()._on_key(event)
 
 
@@ -383,6 +510,9 @@ class ZhuoTuiApp(App[None]):
         self._session_id: str | None = None
         self._busy = False
         self._last_context_pct: float = 0.0
+        self._slash_items: list[tuple[str, str]] = []
+        self._subagent_run_ids: dict[str, str] = {}  # child run_id -> description
+        self._subagent_start_times: dict[str, float] = {}  # child run_id -> start time
 
     def compose(self) -> ComposeResult:
         yield Label("[bold]zhuo_agent[/bold]  [dim]connecting...[/dim]", id="header")
@@ -390,10 +520,50 @@ class ZhuoTuiApp(App[None]):
         yield ChatTextArea(id="prompt", show_line_numbers=False)
 
     def on_mount(self) -> None:
+        self._slash_items = self._build_slash_items()
         self.run_worker(self._socket_loop(), exclusive=True, name="socket")
         prompt = self.query_one("#prompt", ChatTextArea)
         prompt.disabled = True
         prompt.border_title = "connecting..."
+
+    # 构建斜杠命令候选列表：内建命令 + 所有已注册 skill
+    def _build_slash_items(self) -> list[tuple[str, str]]:
+        items: list[tuple[str, str]] = [("compact", "compress context window")]
+        try:
+            loader = SkillLoader()
+            for skill in loader.list_all_skills():
+                items.append((skill.name, skill.description))
+        except Exception:
+            pass
+        return items
+
+    # 根据 / 前缀查询字符串挂载、更新或移除自动补全弹窗
+    def on_chat_text_area_slash_changed(self, event: ChatTextArea.SlashChanged) -> None:
+        query = event.query
+        if query is None:
+            try:
+                self.query_one(SlashCompleteWidget).remove()
+            except NoMatches:
+                pass
+            return
+        try:
+            popup = self.query_one(SlashCompleteWidget)
+            popup.set_query(query)
+        except NoMatches:
+            popup = SlashCompleteWidget(self._slash_items)
+            self.mount(popup, before="#prompt")
+            popup.set_query(query)
+
+    # 用户选中自动补全项后将 /{name} 填入输入框并移除弹窗
+    def on_slash_complete_widget_selected(self, event: SlashCompleteWidget.Selected) -> None:
+        prompt = self._prompt()
+        if prompt is not None:
+            prompt.text = f"/{event.skill_name} "
+            prompt.move_cursor(prompt.document.end)
+        try:
+            self.query_one(SlashCompleteWidget).remove()
+        except NoMatches:
+            pass
 
     # 记录按键焦点；当 PermissionSelect 失去焦点后作为兜底处理权限快捷键
     def on_key(self, event: events.Key) -> None:
@@ -621,6 +791,8 @@ class ZhuoTuiApp(App[None]):
                         "log.*",
                         "permission.*",
                         "context.*",
+                        "subagent.*",
+                        "skill.*",
                     ],
                     "scope": "global",
                 }
@@ -705,7 +877,52 @@ class ZhuoTuiApp(App[None]):
                 classes="run-header",
             ))
 
+        elif t == "skill.invoked":
+            # skill 名与参数都来自用户输入，必须转义 "[" 否则会破坏 Textual markup
+            skill_name = escape(str(event.get("skill_name", "")))
+            arguments = str(event.get("arguments", ""))
+            args_preview = escape(_preview(arguments, 80)) if arguments else ""
+            args_part = f"  [dim]{args_preview}[/dim]" if args_preview else ""
+            self._append(Static(
+                f"[bold cyan]\\[/{skill_name}][/bold cyan]{args_part}",
+                classes="log-line",
+            ))
+
+        elif t == "subagent.started":
+            run_id = event.get("run_id", "")
+            description = escape(str(event.get("description", "")))
+            self._subagent_run_ids[run_id] = description
+            self._subagent_start_times[run_id] = time.monotonic()
+            short_id = run_id[:8] if len(run_id) >= 8 else run_id
+            self._append(Static(
+                f"[dim]┌─[/dim] [cyan]{_preview(description, 72)}[/cyan]  [dim]{short_id}[/dim]",
+                classes="log-line",
+            ))
+
+        elif t == "subagent.finished":
+            run_id = event.get("run_id", "")
+            status = event.get("status", "")
+            description = self._subagent_run_ids.pop(
+                run_id, escape(str(event.get("description", "")))
+            )
+            start = self._subagent_start_times.pop(run_id, None)
+            elapsed = f"  [dim]{time.monotonic() - start:.1f}s[/dim]" if start is not None else ""
+            desc_part = f"[cyan]{_preview(description, 72)}[/cyan]{elapsed}"
+            if status == "success":
+                self._append(Static(
+                    f"[dim]└─[/dim] [bold green]✓[/bold green] {desc_part}",
+                    classes="log-line",
+                ))
+            else:
+                self._append(Static(
+                    f"[dim]└─[/dim] [bold red]✗[/bold red] {desc_part}",
+                    classes="log-line",
+                ))
+
         elif t == "step.started":
+            run_id = event.get("run_id", "")
+            if run_id in self._subagent_run_ids:
+                return
             step = event.get("step", "")
             self._append(Static(
                 f"[dim]step {step}[/dim]",
@@ -716,7 +933,10 @@ class ZhuoTuiApp(App[None]):
             tool_use_id = str(event.get("tool_use_id", ""))
             tool_name = str(event.get("tool_name", ""))
             params = event.get("params") or {}
+            run_id = event.get("run_id", "")
             tc_block = ToolCallBlock(tool_name, params)
+            if run_id in self._subagent_run_ids:
+                tc_block.styles.padding = (0, 2, 0, 6)
             self._pending_tool_blocks[tool_use_id] = tc_block
             self._append(tc_block)
 
@@ -753,6 +973,9 @@ class ZhuoTuiApp(App[None]):
                 ))
 
         elif t == "llm.usage":
+            run_id = event.get("run_id", "")
+            if run_id in self._subagent_run_ids:
+                return
             pct = float(event.get("context_pct") or 0.0)
             self._last_context_pct = pct
             ctx_bar = self._render_ctx_bar(pct)

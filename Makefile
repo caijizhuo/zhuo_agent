@@ -1,4 +1,4 @@
-.PHONY: lint run ping test tui replay trace chat perm
+.PHONY: lint run ping test tui replay trace chat perm verify
 
 run:
 	uv run zhuo-core
@@ -13,6 +13,10 @@ ping:
 lint:
 	uv run ruff check src
 	uv run mypy src
+
+# 验收 S7 移植（Skills / Subagents / MCP / 会话 skill / TUI），不需要真实 LLM
+verify:
+	uv run python scripts/verify_s7_port.py
 
 test:
 	uv run zhuo run --goal "用python写一个快速排序，放到当前文件夹的一个log文件中"
